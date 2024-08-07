@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Instagram, Facebook, Twitter, ChevronLeft, ChevronRight, Paw } from "lucide-react";
+import { Instagram, Facebook, Twitter, ChevronLeft, ChevronRight, Paw, Heart, Share2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 const catFacts = [
   "Cats sleep for about 70% of their lives.",
@@ -15,11 +18,11 @@ const catFacts = [
 ];
 
 const catBreeds = [
-  { name: "Siamese", image: "https://upload.wikimedia.org/wikipedia/commons/2/25/Siam_lilacpoint.jpg" },
-  { name: "Persian", image: "https://upload.wikimedia.org/wikipedia/commons/1/15/White_Persian_Cat.jpg" },
-  { name: "Maine Coon", image: "https://upload.wikimedia.org/wikipedia/commons/5/5f/Maine_Coon_cat_by_Tomitheos.JPG" },
-  { name: "Bengal", image: "https://upload.wikimedia.org/wikipedia/commons/b/ba/Paintedcats_Red_Star_standing.jpg" },
-  { name: "Scottish Fold", image: "https://upload.wikimedia.org/wikipedia/commons/5/5d/Adult_Scottish_Fold.jpg" },
+  { name: "Siamese", image: "https://upload.wikimedia.org/wikipedia/commons/2/25/Siam_lilacpoint.jpg", description: "Known for their distinctive appearance and vocal nature." },
+  { name: "Persian", image: "https://upload.wikimedia.org/wikipedia/commons/1/15/White_Persian_Cat.jpg", description: "Recognized for their long, luxurious coat and sweet personality." },
+  { name: "Maine Coon", image: "https://upload.wikimedia.org/wikipedia/commons/5/5f/Maine_Coon_cat_by_Tomitheos.JPG", description: "One of the largest domestic cat breeds with a gentle temperament." },
+  { name: "Bengal", image: "https://upload.wikimedia.org/wikipedia/commons/b/ba/Paintedcats_Red_Star_standing.jpg", description: "Wild-looking cats known for their spotted or marbled coat patterns." },
+  { name: "Scottish Fold", image: "https://upload.wikimedia.org/wikipedia/commons/5/5d/Adult_Scottish_Fold.jpg", description: "Characterized by their unique folded ears and round faces." },
 ];
 
 const Index = () => {
@@ -29,6 +32,8 @@ const Index = () => {
   const [scrollY, setScrollY] = useState(0);
   const [catOfTheDay, setCatOfTheDay] = useState(0);
   const [isChangingBreed, setIsChangingBreed] = useState(false);
+  const [likedBreeds, setLikedBreeds] = useState(new Set());
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -41,6 +46,19 @@ const Index = () => {
       setCatOfTheDay((prev) => (prev + 1) % catBreeds.length);
     }, 5000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLoadingProgress((oldProgress) => {
+        const newProgress = Math.min(oldProgress + 10, 100);
+        if (newProgress === 100) {
+          clearInterval(timer);
+        }
+        return newProgress;
+      });
+    }, 500);
+    return () => clearInterval(timer);
   }, []);
 
   const generateCatFact = useCallback(() => {
@@ -70,9 +88,21 @@ const Index = () => {
     setEmail("");
   }, []);
 
+  const toggleLike = useCallback((index) => {
+    setLikedBreeds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col">
-      <nav className="bg-gray-800 text-white p-4 fixed w-full z-10">
+      <nav className="bg-gradient-to-r from-purple-600 to-pink-500 text-white p-4 fixed w-full z-10">
         <div className="container mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-bold flex items-center">
             <Paw className="mr-2" />
@@ -86,6 +116,10 @@ const Index = () => {
           </ul>
         </div>
       </nav>
+
+      <div className="fixed bottom-4 right-4 z-20">
+        <Progress value={loadingProgress} className="w-24 h-2" />
+      </div>
 
       <div className="flex-grow pt-16">
         <div className="relative h-screen flex items-center justify-center overflow-hidden">
@@ -154,34 +188,50 @@ const Index = () => {
                 <CardDescription>Explore different cat breeds</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="relative">
-                  <AnimatePresence mode="wait">
-                    <motion.img
-                      key={currentBreedIndex}
-                      src={catBreeds[currentBreedIndex].image}
-                      alt={catBreeds[currentBreedIndex].name}
-                      className="w-full h-64 object-cover rounded-lg"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  </AnimatePresence>
-                  <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 rounded-b-lg">
-                    <p className="text-center text-lg font-semibold">{catBreeds[currentBreedIndex].name}</p>
-                  </div>
-                  <Button onClick={handlePrevBreed} className="absolute top-1/2 left-2 transform -translate-y-1/2" disabled={isChangingBreed}>
-                    <ChevronLeft className="h-6 w-6" />
-                  </Button>
-                  <Button onClick={handleNextBreed} className="absolute top-1/2 right-2 transform -translate-y-1/2" disabled={isChangingBreed}>
-                    <ChevronRight className="h-6 w-6" />
-                  </Button>
-                </div>
+                <Carousel className="w-full max-w-xs mx-auto">
+                  <CarouselContent>
+                    {catBreeds.map((breed, index) => (
+                      <CarouselItem key={index}>
+                        <div className="relative">
+                          <img
+                            src={breed.image}
+                            alt={breed.name}
+                            className="w-full h-64 object-cover rounded-lg"
+                          />
+                          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 rounded-b-lg">
+                            <p className="text-center text-lg font-semibold">{breed.name}</p>
+                          </div>
+                          <div className="absolute top-2 right-2 flex space-x-2">
+                            <Button
+                              size="icon"
+                              variant="secondary"
+                              className={`rounded-full ${likedBreeds.has(index) ? 'bg-red-500 text-white' : 'bg-white text-gray-800'}`}
+                              onClick={() => toggleLike(index)}
+                            >
+                              <Heart className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="secondary"
+                              className="rounded-full bg-white text-gray-800"
+                              onClick={() => toast.success(`Shared ${breed.name}!`)}
+                            >
+                              <Share2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="mt-2 text-sm text-gray-600">{breed.description}</p>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious />
+                  <CarouselNext />
+                </Carousel>
               </CardContent>
             </Card>
           </div>
 
-          <Card className="mb-12">
+          <Card className="mb-12 overflow-hidden">
             <CardHeader>
               <CardTitle>Cat of the Day</CardTitle>
               <CardDescription>A new adorable cat every few seconds!</CardDescription>
@@ -194,15 +244,21 @@ const Index = () => {
                     src={catBreeds[catOfTheDay].image}
                     alt={catBreeds[catOfTheDay].name}
                     className="w-full h-full object-cover rounded-lg"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    initial={{ opacity: 0, scale: 1.1 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ duration: 0.5 }}
                   />
                 </AnimatePresence>
-                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 rounded-b-lg">
+                <motion.div
+                  className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent text-white p-4 rounded-b-lg"
+                  initial={{ y: 50, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                >
                   <p className="text-center text-lg font-semibold">{catBreeds[catOfTheDay].name}</p>
-                </div>
+                  <p className="text-center text-sm mt-1">{catBreeds[catOfTheDay].description}</p>
+                </motion.div>
               </div>
             </CardContent>
           </Card>
@@ -231,13 +287,13 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-purple-100 to-pink-100">
             <CardHeader>
-              <CardTitle>Subscribe to Cat Facts</CardTitle>
-              <CardDescription>Get daily cat facts delivered to your inbox!</CardDescription>
+              <CardTitle className="text-purple-800">Subscribe to Cat Facts</CardTitle>
+              <CardDescription className="text-pink-700">Get daily cat facts delivered to your inbox!</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubscribe} className="flex gap-2">
+              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2">
                 <Input
                   type="email"
                   placeholder="Enter your email"
@@ -246,10 +302,15 @@ const Index = () => {
                   required
                   className="flex-grow"
                 />
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                <Button type="submit" className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white">
                   Subscribe
                 </Button>
               </form>
+              <div className="mt-4 flex justify-center space-x-2">
+                <Badge variant="secondary">Daily Facts</Badge>
+                <Badge variant="secondary">Cat Care Tips</Badge>
+                <Badge variant="secondary">Cute Pictures</Badge>
+              </div>
             </CardContent>
           </Card>
         </div>
