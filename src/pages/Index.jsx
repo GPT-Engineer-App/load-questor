@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Instagram, Facebook, Twitter, ChevronLeft, ChevronRight } from "lucide-react";
+import { Instagram, Facebook, Twitter, ChevronLeft, ChevronRight, Paw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 
 const catFacts = [
   "Cats sleep for about 70% of their lives.",
@@ -26,6 +27,8 @@ const Index = () => {
   const [email, setEmail] = useState("");
   const [currentBreedIndex, setCurrentBreedIndex] = useState(0);
   const [scrollY, setScrollY] = useState(0);
+  const [catOfTheDay, setCatOfTheDay] = useState(0);
+  const [isChangingBreed, setIsChangingBreed] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -33,35 +36,53 @@ const Index = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const generateCatFact = () => {
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCatOfTheDay((prev) => (prev + 1) % catBreeds.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const generateCatFact = useCallback(() => {
     const randomFact = catFacts[Math.floor(Math.random() * catFacts.length)];
     setCatFact(randomFact);
-  };
+  }, []);
 
-  const handleNextBreed = () => {
-    setCurrentBreedIndex((prevIndex) => (prevIndex + 1) % catBreeds.length);
-  };
+  const handleNextBreed = useCallback(() => {
+    setIsChangingBreed(true);
+    setTimeout(() => {
+      setCurrentBreedIndex((prevIndex) => (prevIndex + 1) % catBreeds.length);
+      setIsChangingBreed(false);
+    }, 300);
+  }, []);
 
-  const handlePrevBreed = () => {
-    setCurrentBreedIndex((prevIndex) => (prevIndex - 1 + catBreeds.length) % catBreeds.length);
-  };
+  const handlePrevBreed = useCallback(() => {
+    setIsChangingBreed(true);
+    setTimeout(() => {
+      setCurrentBreedIndex((prevIndex) => (prevIndex - 1 + catBreeds.length) % catBreeds.length);
+      setIsChangingBreed(false);
+    }, 300);
+  }, []);
 
-  const handleSubscribe = (e) => {
+  const handleSubscribe = useCallback((e) => {
     e.preventDefault();
     toast.success("Thanks for subscribing!");
     setEmail("");
-  };
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
       <nav className="bg-gray-800 text-white p-4 fixed w-full z-10">
         <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold">CatWorld</h1>
+          <h1 className="text-2xl font-bold flex items-center">
+            <Paw className="mr-2" />
+            CatWorld
+          </h1>
           <ul className="flex space-x-4">
-            <li><a href="#" className="hover:text-gray-300">Home</a></li>
-            <li><a href="#" className="hover:text-gray-300">About</a></li>
-            <li><a href="#" className="hover:text-gray-300">Gallery</a></li>
-            <li><a href="#" className="hover:text-gray-300">Contact</a></li>
+            <li><a href="#" className="hover:text-gray-300 transition-colors duration-300">Home</a></li>
+            <li><a href="#" className="hover:text-gray-300 transition-colors duration-300">About</a></li>
+            <li><a href="#" className="hover:text-gray-300 transition-colors duration-300">Gallery</a></li>
+            <li><a href="#" className="hover:text-gray-300 transition-colors duration-300">Contact</a></li>
           </ul>
         </div>
       </nav>
@@ -76,10 +97,38 @@ const Index = () => {
             }}
           />
           <div className="relative z-10 text-center">
-            <h1 className="text-6xl font-bold text-white shadow-lg mb-4">All About Cats</h1>
-            <p className="text-2xl text-white shadow-md">Discover the fascinating world of felines</p>
+            <motion.h1 
+              initial={{ opacity: 0, y: -50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="text-6xl font-bold text-white shadow-lg mb-4"
+            >
+              All About Cats
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="text-2xl text-white shadow-md"
+            >
+              Discover the fascinating world of felines
+            </motion.p>
           </div>
         </div>
+
+        <motion.div 
+          className="absolute top-1/2 left-10 transform -translate-y-1/2"
+          animate={{
+            y: [0, -20, 0],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            repeatType: "reverse",
+          }}
+        >
+          <Paw size={48} color="white" />
+        </motion.div>
         
         <div className="container mx-auto py-12 px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
@@ -106,18 +155,25 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <div className="relative">
-                  <img
-                    src={catBreeds[currentBreedIndex].image}
-                    alt={catBreeds[currentBreedIndex].name}
-                    className="w-full h-64 object-cover rounded-lg"
-                  />
+                  <AnimatePresence mode="wait">
+                    <motion.img
+                      key={currentBreedIndex}
+                      src={catBreeds[currentBreedIndex].image}
+                      alt={catBreeds[currentBreedIndex].name}
+                      className="w-full h-64 object-cover rounded-lg"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </AnimatePresence>
                   <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 rounded-b-lg">
                     <p className="text-center text-lg font-semibold">{catBreeds[currentBreedIndex].name}</p>
                   </div>
-                  <Button onClick={handlePrevBreed} className="absolute top-1/2 left-2 transform -translate-y-1/2">
+                  <Button onClick={handlePrevBreed} className="absolute top-1/2 left-2 transform -translate-y-1/2" disabled={isChangingBreed}>
                     <ChevronLeft className="h-6 w-6" />
                   </Button>
-                  <Button onClick={handleNextBreed} className="absolute top-1/2 right-2 transform -translate-y-1/2">
+                  <Button onClick={handleNextBreed} className="absolute top-1/2 right-2 transform -translate-y-1/2" disabled={isChangingBreed}>
                     <ChevronRight className="h-6 w-6" />
                   </Button>
                 </div>
@@ -127,14 +183,51 @@ const Index = () => {
 
           <Card className="mb-12">
             <CardHeader>
+              <CardTitle>Cat of the Day</CardTitle>
+              <CardDescription>A new adorable cat every few seconds!</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="relative h-64">
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={catOfTheDay}
+                    src={catBreeds[catOfTheDay].image}
+                    alt={catBreeds[catOfTheDay].name}
+                    className="w-full h-full object-cover rounded-lg"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                  />
+                </AnimatePresence>
+                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 rounded-b-lg">
+                  <p className="text-center text-lg font-semibold">{catBreeds[catOfTheDay].name}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mb-12">
+            <CardHeader>
               <CardTitle>Cat Fact Generator</CardTitle>
               <CardDescription>Click the button to learn a random cat fact!</CardDescription>
             </CardHeader>
             <CardContent>
               <Button onClick={generateCatFact} className="bg-purple-600 hover:bg-purple-700">Generate Cat Fact</Button>
-              {catFact && (
-                <p className="mt-4 p-4 bg-gray-100 rounded-lg animate-fade-in">{catFact}</p>
-              )}
+              <AnimatePresence mode="wait">
+                {catFact && (
+                  <motion.p
+                    key={catFact}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="mt-4 p-4 bg-gray-100 rounded-lg"
+                  >
+                    {catFact}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </CardContent>
           </Card>
 
@@ -151,8 +244,11 @@ const Index = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  className="flex-grow"
                 />
-                <Button type="submit">Subscribe</Button>
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                  Subscribe
+                </Button>
               </form>
             </CardContent>
           </Card>
