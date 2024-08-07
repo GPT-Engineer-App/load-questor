@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Instagram, Facebook, Twitter } from "lucide-react";
+import { Instagram, Facebook, Twitter, ChevronLeft, ChevronRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 const catFacts = [
   "Cats sleep for about 70% of their lives.",
@@ -11,17 +13,48 @@ const catFacts = [
   "Cats can jump up to six times their length.",
 ];
 
+const catBreeds = [
+  { name: "Siamese", image: "https://upload.wikimedia.org/wikipedia/commons/2/25/Siam_lilacpoint.jpg" },
+  { name: "Persian", image: "https://upload.wikimedia.org/wikipedia/commons/1/15/White_Persian_Cat.jpg" },
+  { name: "Maine Coon", image: "https://upload.wikimedia.org/wikipedia/commons/5/5f/Maine_Coon_cat_by_Tomitheos.JPG" },
+  { name: "Bengal", image: "https://upload.wikimedia.org/wikipedia/commons/b/ba/Paintedcats_Red_Star_standing.jpg" },
+  { name: "Scottish Fold", image: "https://upload.wikimedia.org/wikipedia/commons/5/5d/Adult_Scottish_Fold.jpg" },
+];
+
 const Index = () => {
   const [catFact, setCatFact] = useState("");
+  const [email, setEmail] = useState("");
+  const [currentBreedIndex, setCurrentBreedIndex] = useState(0);
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const generateCatFact = () => {
     const randomFact = catFacts[Math.floor(Math.random() * catFacts.length)];
     setCatFact(randomFact);
   };
 
+  const handleNextBreed = () => {
+    setCurrentBreedIndex((prevIndex) => (prevIndex + 1) % catBreeds.length);
+  };
+
+  const handlePrevBreed = () => {
+    setCurrentBreedIndex((prevIndex) => (prevIndex - 1 + catBreeds.length) % catBreeds.length);
+  };
+
+  const handleSubscribe = (e) => {
+    e.preventDefault();
+    toast.success("Thanks for subscribing!");
+    setEmail("");
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
-      <nav className="bg-gray-800 text-white p-4">
+      <nav className="bg-gray-800 text-white p-4 fixed w-full z-10">
         <div className="container mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-bold">CatWorld</h1>
           <ul className="flex space-x-4">
@@ -33,14 +66,24 @@ const Index = () => {
         </div>
       </nav>
 
-      <div className="flex-grow">
-        <div className="bg-cover bg-center h-96 flex items-center justify-center" style={{backgroundImage: "url('https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80')"}}>
-          <h1 className="text-6xl font-bold text-white shadow-lg">All About Cats</h1>
+      <div className="flex-grow pt-16">
+        <div className="relative h-screen flex items-center justify-center overflow-hidden">
+          <div
+            className="absolute w-full h-full bg-cover bg-center"
+            style={{
+              backgroundImage: "url('https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80')",
+              transform: `translateY(${scrollY * 0.5}px)`,
+            }}
+          />
+          <div className="relative z-10 text-center">
+            <h1 className="text-6xl font-bold text-white shadow-lg mb-4">All About Cats</h1>
+            <p className="text-2xl text-white shadow-md">Discover the fascinating world of felines</p>
+          </div>
         </div>
         
         <div className="container mx-auto py-12 px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-            <Card>
+            <Card className="transform hover:scale-105 transition-transform duration-300">
               <CardHeader>
                 <CardTitle>Characteristics of Cats</CardTitle>
                 <CardDescription>What makes cats unique?</CardDescription>
@@ -56,19 +99,28 @@ const Index = () => {
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="transform hover:scale-105 transition-transform duration-300">
               <CardHeader>
                 <CardTitle>Popular Cat Breeds</CardTitle>
-                <CardDescription>Some well-known cat breeds around the world</CardDescription>
+                <CardDescription>Explore different cat breeds</CardDescription>
               </CardHeader>
               <CardContent>
-                <ul className="list-disc pl-6">
-                  <li>Siamese</li>
-                  <li>Persian</li>
-                  <li>Maine Coon</li>
-                  <li>Bengal</li>
-                  <li>Scottish Fold</li>
-                </ul>
+                <div className="relative">
+                  <img
+                    src={catBreeds[currentBreedIndex].image}
+                    alt={catBreeds[currentBreedIndex].name}
+                    className="w-full h-64 object-cover rounded-lg"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 rounded-b-lg">
+                    <p className="text-center text-lg font-semibold">{catBreeds[currentBreedIndex].name}</p>
+                  </div>
+                  <Button onClick={handlePrevBreed} className="absolute top-1/2 left-2 transform -translate-y-1/2">
+                    <ChevronLeft className="h-6 w-6" />
+                  </Button>
+                  <Button onClick={handleNextBreed} className="absolute top-1/2 right-2 transform -translate-y-1/2">
+                    <ChevronRight className="h-6 w-6" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -79,10 +131,29 @@ const Index = () => {
               <CardDescription>Click the button to learn a random cat fact!</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={generateCatFact}>Generate Cat Fact</Button>
+              <Button onClick={generateCatFact} className="bg-purple-600 hover:bg-purple-700">Generate Cat Fact</Button>
               {catFact && (
-                <p className="mt-4 p-4 bg-gray-100 rounded-lg">{catFact}</p>
+                <p className="mt-4 p-4 bg-gray-100 rounded-lg animate-fade-in">{catFact}</p>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Subscribe to Cat Facts</CardTitle>
+              <CardDescription>Get daily cat facts delivered to your inbox!</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubscribe} className="flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+                <Button type="submit">Subscribe</Button>
+              </form>
             </CardContent>
           </Card>
         </div>
@@ -90,12 +161,12 @@ const Index = () => {
 
       <footer className="bg-gray-800 text-white py-8">
         <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col md:flex-row justify-between items-center">
             <p>&copy; 2023 CatWorld. All rights reserved.</p>
-            <div className="flex space-x-4">
-              <a href="#" className="hover:text-gray-300"><Instagram /></a>
-              <a href="#" className="hover:text-gray-300"><Facebook /></a>
-              <a href="#" className="hover:text-gray-300"><Twitter /></a>
+            <div className="flex space-x-4 mt-4 md:mt-0">
+              <a href="#" className="hover:text-gray-300 transition-colors duration-300"><Instagram /></a>
+              <a href="#" className="hover:text-gray-300 transition-colors duration-300"><Facebook /></a>
+              <a href="#" className="hover:text-gray-300 transition-colors duration-300"><Twitter /></a>
             </div>
           </div>
         </div>
